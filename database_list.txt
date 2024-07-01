@@ -1,0 +1,9 @@
+users:-firstname,lastname,username,password,email,phone,birthdate,user_id,temp_password,img
+resturants:-resturant_id,name,rating,address,Username,password,phone,order_id
+orders:-order_id,user_id,OrderDate,totalPrice
+order_items:-order_item_id,order_id,item_id,quanity,resturant_id
+item_ingredients:-ItemID,IngredientID
+menu_items:-item_id,resturant_id,name,description,price,img,quantity
+ingredients:-ingredient_id,name,price
+temp_orders(not buyed):-temp_order_id,user_id,item_id,quanity
+delivery_driver:-Full Name,Username,Password,order_id,user_id 
