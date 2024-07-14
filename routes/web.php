@@ -19,12 +19,15 @@ $router->post('/register', 'AuthController@register');
 $router->post('/login', 'AuthController@login');
 $router->post('/login__222__admin', 'AuthController@loginAdmin');
 $router->post('/fgpassword','AuthController@forgetpassword');
-$router->post('/register/res','AuthController_res@register');
 $router->post('/login/res','AuthController_res@login');
-$router->post('/register/del','AuthController_Del@register');
 $router->post('/login/del','AuthController_Del@login');
 $router->get('/api/resturants/index', 'ResturantsController@index');
 $router->get('/menu_items','MenuItemsController@index');
+
+$router->post('/menu_items_id','MenuItemsController@index_id');
+#will search the menu items resturants address then it will show the closest to furthest address
+$router->post('/resturants_address','ResturantsController@sort_location');
+$router->post('/resturants_address_food','ResturantsController@sort_location_food');
 
 $router->group(['middleware' => 'auth','prefix' => 'api'], function ($router)
 {
@@ -74,6 +77,13 @@ $router->group(['middleware' => 'auth:admin','prefix' => 'api/admin'], function 
     $router->get('/users','AdminController@users_list');
     $router->get('/resturants','AdminController@resturants_list');
     $router->get('/delivery_drivers','AdminController@delivery_list');
+    //make for pi like prectnge how much for each resturants 2 things one for all resturants do the math and 
+    //one for a resturant 
+    $router->get('/resturants/money/all/total','AdminController@resturants_money_all_total'); 
+    $router->get('/resturants/money/all/tax','AdminController@resturants_money_all_tax'); 
+    $router->post('/resturants/money/total','AdminController@resturants_money_total'); 
+    $router->post('/resturants/money/tax','AdminController@resturants_money_tax'); 
+
 
     //ADD
     $router->post('/orders_add','AdminController@orders_add');
@@ -92,4 +102,6 @@ $router->group(['middleware' => 'auth:admin','prefix' => 'api/admin'], function 
     $router->post('/users_edit','AdminController@users_edit');
     $router->post('/resturants_edit','AdminController@resturants_edit');
     $router->post('/delivery_drivers_edit','AdminController@delivery_edit');
+
+    
 });

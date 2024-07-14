@@ -6,12 +6,16 @@ use App\Models\ingredients;
 use App\Models\item_ingredients;
 use App\Models\menu_items;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use App\Models\resturants;
 use App\Models\order_items;
 use App\Models\resturant_orders;
 
+use function PHPUnit\Framework\isEmpty;
+
 class ResturantsController extends Controller
 {
+
     public function index()
     {
         $resturants = resturants::all();
@@ -85,7 +89,11 @@ class ResturantsController extends Controller
         $resturant_id=auth($guard='resturants')->user()['id'];
         $menu_item=menu_items::where('id',$request->menu_item_id)->first();
         if($menu_item){
-            
+            $menu_item->name=$request->name;
+            $menu_item->price=$request->price;
+            $menu_item->description=$request->description;
+            $menu_item->quantity=$request->quantity;
+            $menu_item->save();
         }
         return response()->json(['status' => 'success', 'message' => 'Menu item edited successfully']);
     }
@@ -95,6 +103,7 @@ class ResturantsController extends Controller
         // Your logic to remove menu items
         // Example:
         // DB::table('menu_items')->where('id', $request->id)->delete();
+        $menu_item=menu_items::where('id',$request->menu_item_id)->delete();
         return response()->json(['status' => 'success', 'message' => 'Menu item removed successfully']);
     }
 
@@ -132,17 +141,18 @@ class ResturantsController extends Controller
                     }
                 }
         
-        // Your logic to add menu item ingredients
-        // Example:
-        // DB::table('menu_item_ingredients')->insert(['menu_item_id' => $request->menu_item_id, ...]);
         return response()->json(['status' => 'success', 'message' => 'Menu item ingredient added successfully']);
     }
 
     public function menu_items_ingredients_edit(Request $request)
     {
-        // Your logic to edit menu item ingredients
-        // Example:
-        // DB::table('menu_item_ingredients')->where('id', $request->id)->update(['name' => $request->name, ...]);
+        $id=$request->id;
+        $ingredient=ingredients::where('id',$id)->first();
+        if($ingredient){
+            $ingredient->name=$request->name;
+            $ingredient->price=$request->price;
+            $ingredient->save();
+        }
         return response()->json(['status' => 'success', 'message' => 'Menu item ingredient edited successfully']);
     }
 
@@ -151,10 +161,126 @@ class ResturantsController extends Controller
         // Your logic to remove menu item ingredients
         // Example:
         // DB::table('menu_item_ingredients')->where('id', $request->id)->delete();
+        
+        $id=$request->id;
+        $ingredient=ingredients::where('id',$id)->delete();
         return response()->json(['status' => 'success', 'message' => 'Menu item ingredient removed successfully']);
     }
 
-  
+    public function sort_location(Request $request){
+        $address=$request->address;
+        
+        $locationdetails= Http::get('https://geocode.maps.co/search?city='.$address.'&country=IL&api_key=6684fb0511fd4967575382teo9d69dc');
+        if($locationdetails!=null){
+            $lat = $locationdetails[0]['lat'];
+            $lon = $locationdetails[0]['lon'];
+            $url = "http://api.geonames.org/findNearbyPlaceNameJSON?lat=".$lat."&lng=".$lon."&style=full&maxRows=30&radius=5&cities=cities1000&username=xtoyx3";
+
+            $closecities = Http::get($url);
+
+            if ($closecities->successful()) {
+                $restaurants=resturants::all();
+                $cities = $closecities->json()['geonames'];
+
+                function alternateNameMatchesAddress($city, $address) {
+                    foreach ($city['alternateNames'] as $altName) {
+                        if (strcasecmp($altName['name'], $address) === 0) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+                
+                function findCityByRestaurantAddress($cities, $restaurantAddress) {
+                    foreach ($cities as $city) {
+                        if (alternateNameMatchesAddress($city, $restaurantAddress)) {
+                            return $city;
+                        }
+                    }
+                    return null; // If no matching city is found
+                }
+                $sortedCities=array();
+                $notmatchedresturants=array();
+                foreach ($restaurants as $restaurant) {
+                    $matchingCity = findCityByRestaurantAddress($cities, $restaurant['address']);
+                    if ($matchingCity) {
+                       array_push($sortedCities,$restaurant);
+                    } else {
+                        array_push($notmatchedresturants,$restaurant);
+                    }
+                } 
+                function findClosestCityByDistance($cities, $restaurant) {
+                    $closestCity = null;
+                    $minDistance = PHP_INT_MAX;
+                
+                    foreach ($cities as $city) {
+                        $distance = (float)$city['distance'];
+                        if ($distance < $minDistance) {
+                            $closestCity = $city;
+                            $minDistance = $distance;
+                        }
+                    }
+                
+                    return $closestCity;
+                }
+                
+                function sortRestaurantsByDistance($cities, $restaurants) {
+                    $sortedByDistance = [];
+                
+                    foreach ($restaurants as $restaurant) {
+                        $closestCity = findClosestCityByDistance($cities, $restaurant);
+                        if ($closestCity) {
+                            $sortedByDistance[] = $restaurant;
+                        }
+                    }
+                
+                    return $sortedByDistance;
+                }
+            
+                $sortedByDistance = sortRestaurantsByDistance($cities, $notmatchedresturants);
+                
+                $finalSortedRestaurants = array_merge($sortedCities, $sortedByDistance);
+
+                            
+                
+                
+            // Prepare the response
+            return $finalSortedRestaurants;
+
+            } else {
+                return response()->json(['status' => 'error', 'message' => 'Failed to fetch nearby cities', 'lat' => $lat, 'lon' => $lon]);
+            }
+        }else return response()->json(['status' => 'error', 'message' => 'not found']);
+    }
+    public function sort_location_food(Request $request){
+        $food=$request->food;
+        
+        $data=$this->sort_location($request);
+        $ids=array();
+        foreach ($data as $restaurant) {
+            $id = $restaurant['id'];
+            array_push($ids,$id);
+        }
+        $food_array=array();
+        $menu_items_list=new MenuItemsController();
+        foreach ($ids as $id){
+            $request->request->add(['id' => $id]); //add request
+            $menu_items=$menu_items_list->index_id($request);
+            array_push($food_array,$menu_items);
+        }
+            $food_array_filtered = [];
+            
+            foreach ($food_array as $items) {
+                foreach($items as $item)
+                    if ($item["name"] === $food) {
+                        $food_array_filtered[] = $item;
+                    }
+            }
+
+            // Return JSON response with filtered array
+            return response()->json(["status"=>'success',"message" => $food_array_filtered]);
+    }
+
 }
 
 

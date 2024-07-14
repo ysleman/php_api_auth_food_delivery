@@ -14,6 +14,7 @@ use App\Models\temp_orders;
 use App\Models\ingredients;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use DateTime;
 
 
 class AdminController extends Controller
@@ -38,6 +39,179 @@ class AdminController extends Controller
     {
         $orders_list=delivery_drivers::all();
         return response()->json(['status'=>'success','message'=>$orders_list]);
+    }
+    //TODO:- ADD MONTHLY 
+    public function resturants_money_all_tax(){
+        $restaurants = resturants::all(); // Assuming you want to calculate for all restaurants
+        $results = [];
+    
+        foreach ($restaurants as $restaurant) {
+            $whattype = $restaurant->typeoftax;
+            $totals = array_fill(0, 12, 0);  // Initialize an array with 12 zeros for each month
+    
+            switch ($whattype) {
+                case 'monthly':
+                    $monthly_amount = $restaurant->moneyorpercentage;
+                    for ($month = 0; $month < 12; $month++) {
+                        $totals[$month] = $monthly_amount;
+                    }
+                    break;
+    
+                case 'perorder':
+                    $order_items = order_items::where('resturant_id', $restaurant->id)->get();
+                    $order_list = [];
+    
+                    foreach ($order_items as $item) {
+                        if (!in_array($item->order_id, $order_list)) {
+                            array_push($order_list, $item->order_id);
+                        }
+                    }
+    
+                    foreach ($order_list as $order_id) {
+                        $order = orders::find($order_id);
+                        $order_date = new DateTime($order->orderDate);
+                        $month = (int)$order_date->format('n') - 1;  // Get month (0-based index)
+                        $totals[$month] += (int)$order->totalPrice;
+                    }
+    
+                    $percentage = $restaurant->moneyorpercentage / 100;
+                    for ($month = 0; $month < 12; $month++) {
+                        $totals[$month] *= $percentage;
+                    }
+                    break;
+            }
+    
+            $results[] = [
+                'restaurant_id' => $restaurant->id,
+                'restaurant_name' => $restaurant->name,
+                'monthly_totals' => $totals
+            ];
+        }
+    
+        return response()->json(['status' => 'success', 'data' => $results]);
+    }
+    public function resturants_money_all_total(){
+        $restaurants = resturants::all(); // Assuming you want to calculate for all restaurants
+        $results = [];
+    
+        foreach ($restaurants as $restaurant) {
+            $whattype = $restaurant->typeoftax;
+            $totals = array_fill(0, 12, 0);  // Initialize an array with 12 zeros for each month
+    
+            switch ($whattype) {
+                case 'monthly':
+                    $monthly_amount = $restaurant->moneyorpercentage;
+                    for ($month = 0; $month < 12; $month++) {
+                        $totals[$month] = $monthly_amount;
+                    }
+                    break;
+    
+                case 'perorder':
+                    $order_items = order_items::where('resturant_id', $restaurant->id)->get();
+                    $order_list = [];
+    
+                    foreach ($order_items as $item) {
+                        if (!in_array($item->order_id, $order_list)) {
+                            array_push($order_list, $item->order_id);
+                        }
+                    }
+    
+                    foreach ($order_list as $order_id) {
+                        $order = orders::find($order_id);
+                        $order_date = new DateTime($order->orderDate);
+                        $month = (int)$order_date->format('n') - 1;  // Get month (0-based index)
+                        $totals[$month] += (int)$order->totalPrice;
+                    }
+    
+                    $percentage = 1;
+                    for ($month = 0; $month < 12; $month++) {
+                        $totals[$month] *= $percentage;
+                    }
+                    break;
+            }
+    
+            $results[] = [
+                'restaurant_id' => $restaurant->id,
+                'restaurant_name' => $restaurant->name,
+                'monthly_totals' => $totals
+            ];
+        }
+    
+        return response()->json(['status' => 'success', 'data' => $results]);
+    }
+ 
+    
+    public function resturants_money_tax(Request $request){
+        $res_id = $request->id;
+        $resturant = resturants::find($res_id);
+        $whattype = $resturant['typeoftax'];
+        $totals = array_fill(0, 12, 0);  // Initialize an array with 12 zeros for each month
+    
+        switch ($whattype) {
+            case 'monthly':
+                $monthly_amount = $resturant['moneyorpercentage'];
+                for ($month = 0; $month < 12; $month++) {
+                    $totals[$month] = $monthly_amount;
+                }
+                break;
+            case 'perorder':
+                $order_items = order_items::where('resturant_id', $resturant['id'])->get();
+                $order_list = array();
+                foreach ($order_items as $item) {
+                    if (!in_array($item['order_id'], $order_list)) {
+                        array_push($order_list, $item['order_id']);
+                    }
+                }
+                foreach ($order_list as $order_id) {
+                    $s1 = orders::find($order_id);
+                    $order_date = new DateTime($s1['orderDate']);
+                    $month = (int)$order_date->format('m') - 1;  // Get month (0-based index)
+                    $totals[$month] += (int)$s1['totalPrice'];
+                }
+                $percentage = $resturant['moneyorpercentage'] / 100;
+                for ($month = 0; $month < 12; $month++) {
+                    $totals[$month] *= $percentage;
+                }
+                break;
+        }
+    
+        return response()->json(['status' => 'success', 'monthly_totals' => $totals]);
+    }
+    public function resturants_money_total(Request $request){
+        $res_id = $request->id;
+        $resturant = resturants::find($res_id);
+        $whattype = $resturant['typeoftax'];
+        $totals = array_fill(0, 12, 0);  // Initialize an array with 12 zeros for each month
+    
+        switch ($whattype) {
+            case 'monthly':
+                $monthly_amount = $resturant['moneyorpercentage'];
+                for ($month = 0; $month < 12; $month++) {
+                    $totals[$month] = $monthly_amount;
+                }
+                break;
+            case 'perorder':
+                $order_items = order_items::where('resturant_id', $resturant['id'])->get();
+                $order_list = array();
+                foreach ($order_items as $item) {
+                    if (!in_array($item['order_id'], $order_list)) {
+                        array_push($order_list, $item['order_id']);
+                    }
+                }
+                foreach ($order_list as $order_id) {
+                    $s1 = orders::find($order_id);
+                    $order_date = new DateTime($s1['orderDate']);
+                    $month = (int)$order_date->format('m') - 1;  // Get month (0-based index)
+                    $totals[$month] += (int)$s1['totalPrice'];
+                }
+                $percentage = 1;
+                for ($month = 0; $month < 12; $month++) {
+                    $totals[$month] *= $percentage;
+                }
+                break;
+        }
+    
+        return response()->json(['status' => 'success', 'monthly_totals' => $totals]);
     }
     //ADD
     public function orders_add(Request $request)
@@ -110,6 +284,7 @@ class AdminController extends Controller
         $user = new User();
         $user->username = $request->username;
         $user->email = $request->email;
+        $user->address=$request->address;
         $user->password = app('hash')->make($request->password);
         $user->firstname=$request->firstname;
         $user->lastname=$request->lastname;
@@ -130,6 +305,8 @@ class AdminController extends Controller
         $resturants->rating=$request->rating;
         $resturants->address=$request->address;
         $resturants->password = app('hash')->make($request->password);
+        $resturants->typeoftax=$request->typeoftax;
+        $resturants->moneyorpercentage=$request->moneyorpercentage;
         if($resturants->save())
             return response()->json(['status'=>'success','message'=>'success']);
         else return response()->json(['status'=>'error','message'=>'failed']);
@@ -168,7 +345,7 @@ class AdminController extends Controller
         $user->firstname=$request->firstname;
         $user->lastname=$request->lastname;
         $user->email=$request->email;
-        #$user->address=$request->address;
+        $user->address=$request->address;
         $user->birthDate=$request->birthDate;
         $user->img=$request->img;
         $user->admin=$request->admin;

@@ -11,6 +11,7 @@ class AuthController extends Controller
     {
         $username = $request->username;
         $email = $request->email;
+        $address=$request->address;
         $password = $request->password;
         $firstname=$request->firstname;
         $lastname=$request->lastname;
@@ -21,7 +22,7 @@ class AuthController extends Controller
 
         // Check if field is empty
         if (empty($username) or empty($email) or empty($password) or empty($firstname) or empty($lastname) or empty($phone) or empty($birthdate) 
-        or empty($img) ) {
+        or empty($img) or empty($address)) {
             return response()->json(['status' => 'error', 'message' => 'You must fill all the fields']);
         }
 
@@ -48,6 +49,7 @@ class AuthController extends Controller
             $user->password = app('hash')->make($request->password);
             $user->firstname=$request->firstname;
             $user->lastname=$request->lastname;
+            $user->address=$request->address;
             $user->phone=$request->phone;
             $user->birthDate=$request->birthdate;
             $user->img=$request->img;

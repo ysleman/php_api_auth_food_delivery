@@ -28,7 +28,7 @@ class resturants extends Model implements AuthenticatableContract, AuthorizableC
      * @var array
      */
     protected $hidden = [
-        'password','username'
+        'password','username','typeoftax','moneyorpercentage'
     ];
 
     /**

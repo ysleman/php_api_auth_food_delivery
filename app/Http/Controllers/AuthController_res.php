@@ -6,53 +6,7 @@ use App\Models\resturants;
 use Illuminate\Http\Request;
 
 class AuthController_res extends Controller
-{
-    public function register(Request $request)
-    {
-        $name = $request->name;
-        $username = $request->username;
-        $password = $request->password;
-        $phone=$request->phone;
-        $rating=$request->rating;
-        $address=$request->address;
-       
-        // Check if field is empty
-        if (empty($name) or empty($username) or empty($password) or empty($phone) or empty($address) or empty($rating) ) {
-            return response()->json(['status' => 'error', 'message' => 'You must fill all the fields']);
-        }
-
-        // // Check if email is valid
-        // if (!filter_var($username)) {
-        //     return response()->json(['status' => 'error', 'message' => 'You must enter a valid email']);
-        // }
-
-        // Check if password is greater than 5 character
-        if (strlen($password) < 6) {
-            return response()->json(['status' => 'error', 'message' => 'Password should be min 6 character']);
-        }
-
-        // Check if resturants already exist
-        if (resturants::where('username', '=', $username)->exists()) {
-            return response()->json(['status' => 'error', 'message' => 'resturants already exists with this email']);
-        }
-
-        // Create new resturants
-        try {
-            $resturants = new resturants();
-            $resturants->name = $request->name;
-            $resturants->username = $request->username;
-            $resturants->phone=$request->phone;
-            $resturants->rating=$request->rating;
-            $resturants->address=$request->address;
-            $resturants->password = app('hash')->make($request->password);
-            if ($resturants->save()) {
-                return $this->login($request);
-            }
-        } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
-        }
-    }
-    
+{    
 
     /**
      * Log the resturants out (Invalidate the token).

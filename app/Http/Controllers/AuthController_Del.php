@@ -7,48 +7,7 @@ use Illuminate\Http\Request;
 
 class AuthController_Del extends Controller
 {
-    public function register(Request $request)
-    {
-        $name = $request->fullname;
-        $username = $request->username;
-        $password = $request->password;
-        $phone=$request->phone;
-       
-        // Check if field is empty
-        if (empty($name) or empty($username) or empty($password) or empty($phone) ) {
-            return response()->json(['status' => 'error', 'message' => 'You must fill all the fields']);
-        }
-
-        // // Check if email is valid
-        // if (!filter_var($username)) {
-        //     return response()->json(['status' => 'error', 'message' => 'You must enter a valid email']);
-        // }
-
-        // Check if password is greater than 5 character
-        if (strlen($password) < 6) {
-            return response()->json(['status' => 'error', 'message' => 'Password should be min 6 character']);
-        }
-
-        // Check if delivery_drivers already exist
-        if (delivery_drivers::where('username', '=', $username)->exists()) {
-            return response()->json(['status' => 'error', 'message' => 'delivery_drivers already exists ']);
-        }
-
-        // Create new delivery_drivers
-        try {
-            $delivery_drivers = new delivery_drivers();
-            $delivery_drivers->full_Name = $request->fullname;
-            $delivery_drivers->username = $request->username;
-            $delivery_drivers->phone=$request->phone;
-            $delivery_drivers->password = app('hash')->make($request->password);
-            if ($delivery_drivers->save()) {
-                return $this->login($request);
-            }
-        } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()]);
-        }
-    }
-    
+   
 
     /**
      * Log the delivery_drivers out (Invalidate the token).

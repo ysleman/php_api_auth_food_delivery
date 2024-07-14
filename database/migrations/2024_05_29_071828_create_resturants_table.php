@@ -21,6 +21,8 @@ class CreateResturantsTable extends Migration
             $table->string('phone');
             $table->string('username')->unique();
             $table->string('password');
+            $table->string('typeoftax');
+            $table->string('moneyorpercentage');
             $table->timestamps();
         });
     }
