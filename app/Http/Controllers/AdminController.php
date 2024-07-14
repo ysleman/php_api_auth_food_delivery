@@ -40,51 +40,23 @@ class AdminController extends Controller
         $orders_list=delivery_drivers::all();
         return response()->json(['status'=>'success','message'=>$orders_list]);
     }
-    //TODO:- ADD MONTHLY 
     public function resturants_money_all_tax(){
         $restaurants = resturants::all(); // Assuming you want to calculate for all restaurants
         $results = [];
     
         foreach ($restaurants as $restaurant) {
             $whattype = $restaurant->typeoftax;
-            $totals = array_fill(0, 12, 0);  // Initialize an array with 12 zeros for each month
-    
-            switch ($whattype) {
-                case 'monthly':
-                    $monthly_amount = $restaurant->moneyorpercentage;
-                    for ($month = 0; $month < 12; $month++) {
-                        $totals[$month] = $monthly_amount;
-                    }
-                    break;
-    
-                case 'perorder':
-                    $order_items = order_items::where('resturant_id', $restaurant->id)->get();
-                    $order_list = [];
-    
-                    foreach ($order_items as $item) {
-                        if (!in_array($item->order_id, $order_list)) {
-                            array_push($order_list, $item->order_id);
-                        }
-                    }
-    
-                    foreach ($order_list as $order_id) {
-                        $order = orders::find($order_id);
-                        $order_date = new DateTime($order->orderDate);
-                        $month = (int)$order_date->format('n') - 1;  // Get month (0-based index)
-                        $totals[$month] += (int)$order->totalPrice;
-                    }
-    
-                    $percentage = $restaurant->moneyorpercentage / 100;
-                    for ($month = 0; $month < 12; $month++) {
-                        $totals[$month] *= $percentage;
-                    }
-                    break;
-            }
-    
+            $request = new \Illuminate\Http\Request();
+            $request->setMethod('POST');
+            $request->request->add(['id' => $restaurant['id']]); //add request
+            $request->request->add(['years'=>"true"]);
+            $totals = $this->resturants_money_tax($request); 
+            
+            $totals=$totals->getData();
             $results[] = [
                 'restaurant_id' => $restaurant->id,
                 'restaurant_name' => $restaurant->name,
-                'monthly_totals' => $totals
+                'monthly_totals' => $totals->monthly_totals
             ];
         }
     
@@ -96,44 +68,17 @@ class AdminController extends Controller
     
         foreach ($restaurants as $restaurant) {
             $whattype = $restaurant->typeoftax;
-            $totals = array_fill(0, 12, 0);  // Initialize an array with 12 zeros for each month
-    
-            switch ($whattype) {
-                case 'monthly':
-                    $monthly_amount = $restaurant->moneyorpercentage;
-                    for ($month = 0; $month < 12; $month++) {
-                        $totals[$month] = $monthly_amount;
-                    }
-                    break;
-    
-                case 'perorder':
-                    $order_items = order_items::where('resturant_id', $restaurant->id)->get();
-                    $order_list = [];
-    
-                    foreach ($order_items as $item) {
-                        if (!in_array($item->order_id, $order_list)) {
-                            array_push($order_list, $item->order_id);
-                        }
-                    }
-    
-                    foreach ($order_list as $order_id) {
-                        $order = orders::find($order_id);
-                        $order_date = new DateTime($order->orderDate);
-                        $month = (int)$order_date->format('n') - 1;  // Get month (0-based index)
-                        $totals[$month] += (int)$order->totalPrice;
-                    }
-    
-                    $percentage = 1;
-                    for ($month = 0; $month < 12; $month++) {
-                        $totals[$month] *= $percentage;
-                    }
-                    break;
-            }
-    
+            $request = new \Illuminate\Http\Request();
+            $request->setMethod('POST');
+            $request->request->add(['id' => $restaurant['id']]); //add request
+            $request->request->add(['years'=>"true"]);
+            $totals = $this->resturants_money_total($request); 
+            
+            $totals=$totals->getData();
             $results[] = [
                 'restaurant_id' => $restaurant->id,
                 'restaurant_name' => $restaurant->name,
-                'monthly_totals' => $totals
+                'monthly_totals' => $totals->monthly_totals
             ];
         }
     
@@ -143,75 +88,309 @@ class AdminController extends Controller
     
     public function resturants_money_tax(Request $request){
         $res_id = $request->id;
+        $years=$request->years;
         $resturant = resturants::find($res_id);
         $whattype = $resturant['typeoftax'];
-        $totals = array_fill(0, 12, 0);  // Initialize an array with 12 zeros for each month
-    
-        switch ($whattype) {
-            case 'monthly':
-                $monthly_amount = $resturant['moneyorpercentage'];
-                for ($month = 0; $month < 12; $month++) {
-                    $totals[$month] = $monthly_amount;
-                }
-                break;
-            case 'perorder':
-                $order_items = order_items::where('resturant_id', $resturant['id'])->get();
-                $order_list = array();
-                foreach ($order_items as $item) {
-                    if (!in_array($item['order_id'], $order_list)) {
-                        array_push($order_list, $item['order_id']);
+        $totals = array_fill(0, 12, 0); 
+        $dateforresturant=new DateTime($resturant['created_at']);
+        $startmonth=(int)$dateforresturant->format('m')-1;
+        $startyear=(int)$dateforresturant->format('Y');
+        $currentyear=date('Y');
+        $avaiable=true;
+        $mes='';
+        if($currentyear==$startyear){
+            if($startmonth+1>date('m')){
+               $avaiable=false;
+            }
+            $mes='year : '.$currentyear;
+        }else if($currentyear>$startyear)
+            $avaiable=true;
+        else 
+            $avaiable=false;
+
+        $mes.=' Get for all';
+        if(empty($years)||$years=null){
+            switch ($whattype) {
+                case 'monthly':
+                    $monthly_amount = $resturant['moneyorpercentage'];
+                    $sameyear=false;
+                    if($avaiable){
+                        $order_items = order_items::where('resturant_id', $resturant['id'])->get();
+                        $order_list = array();
+                        foreach ($order_items as $item) {
+                            if (!in_array($item['order_id'], $order_list)) {
+                                array_push($order_list, $item['order_id']);
+                            }
+                        }
+                        foreach ($order_list as $order_id) {
+                            $s1 = orders::find($order_id);
+                            $order_date = new DateTime($s1['orderDate']);
+                            if((int)$order_date->format('Y')==$startyear){
+                                $month = (int)$order_date->format('m') - 1;  // Get month (0-based index)
+                                $totals[$month] += (int)$s1['totalPrice'];
+                                $sameyear=true;
+                            }else{
+                                $sameyear=false; 
+                            }
+                        }
+                        if($sameyear)
+                            for ($month = $startmonth; $month < 12; $month++) {
+                                if($totals[$month]!=0){
+                                    if($totals[$month]>=$monthly_amount)$totals[$month]='+'.($totals[$month]-$monthly_amount);//above monthly amount
+                                    else $totals[$month]='-'.($monthly_amount-$totals[$month]);
+                                }
+                            }
+                    } else $mes="Sorry, this restaurant is not available in this time";
+                    break;
+                case 'perorder':
+                    if($avaiable){
+                        $order_items = order_items::where('resturant_id', $resturant['id'])->get();
+                        $order_list = array();
+                        $sameyear=false;
+                        foreach ($order_items as $item) {
+                            if (!in_array($item['order_id'], $order_list)) {
+                                array_push($order_list, $item['order_id']);
+                            }
+                        }
+                        foreach ($order_list as $order_id) {
+                            $s1 = orders::find($order_id);
+                            $order_date = new DateTime($s1['orderDate']);
+                            if((int)$order_date->format('Y')==$currentyear){
+                                $month = (int)$order_date->format('m') - 1;  // Get month (0-based index)
+                                $totals[$month] += (int)$s1['totalPrice'];
+                                $sameyear=true;
+                            }else{
+                                $sameyear=false;
+                            }
+                        }
+                        $percentage = $resturant['moneyorpercentage'] / 100;
+                        if($sameyear)
+                            for ($month = $startmonth; $month < 12; $month++) {
+                                if($totals[$month]!=0)
+                                $totals[$month] *= $percentage;
+                            }
+                    } else $mes="Sorry, this restaurant is not available in this time";
+                    break;
+            }
+        } else {
+            switch ($whattype) {
+                case 'monthly':
+                    $monthly_amount = $resturant['moneyorpercentage'];
+                    $totals=array_fill(0,($currentyear-$startyear)+1,array_fill(0, 12, 0));
+                    
+                    if($avaiable){
+                        $order_items = order_items::where('resturant_id', $resturant['id'])->get();
+                        $order_list = array();
+                        foreach ($order_items as $item) {
+                            if (!in_array($item['order_id'], $order_list)) {
+                                array_push($order_list, $item['order_id']);
+                            }
+                        }
+                        foreach ($order_list as $order_id) {
+                            $s1 = orders::find($order_id);
+                            $order_date = new DateTime($s1['orderDate']);
+                            if((int)$order_date->format('Y')==$startyear){
+                                $month = (int)$order_date->format('m') - 1; 
+                                $totals[0][$month] += (int)$s1['totalPrice'];
+                            }else{
+                                $month = (int)$order_date->format('m') - 1;
+                                $totals[($currentyear-(int)$order_date->format('Y'))][$month] += (int)$s1['totalPrice'];
+                            }
+                        }
+                        
+                        for($i=0;$i<($currentyear-$startyear+1);$i++){
+                            if($i==0)
+                                for ($month = $startmonth; $month < 12; $month++) {
+                                    if($totals[$i][$month]!=0){
+                                        if($totals[$i][$month]>=$monthly_amount)$totals[$i][$month]='+'.($totals[$i][$month]-$monthly_amount);//above monthly amount
+                                        else $totals[$i][$month]='-'.($monthly_amount-$totals[$i][$month]);
+                                    }
+                                }
+                            else
+                                for ($month = 0; $month < 12; $month++) {
+                                    if($totals[$i][$month]!=0){
+                                        if($totals[$i][$month]>=$monthly_amount)$totals[$i][$month]='+'.($totals[$i][$month]-$monthly_amount);//above monthly amount
+                                        else $totals[$i][$month]='-'.($monthly_amount-$totals[$i][$month]);
+                                    }
+                                }
+                        }
+                        
                     }
-                }
-                foreach ($order_list as $order_id) {
-                    $s1 = orders::find($order_id);
-                    $order_date = new DateTime($s1['orderDate']);
-                    $month = (int)$order_date->format('m') - 1;  // Get month (0-based index)
-                    $totals[$month] += (int)$s1['totalPrice'];
-                }
-                $percentage = $resturant['moneyorpercentage'] / 100;
-                for ($month = 0; $month < 12; $month++) {
-                    $totals[$month] *= $percentage;
-                }
-                break;
+                    else $mes="Sorry, this restaurant is not available in this time";
+                    
+                    break;
+                case 'perorder':
+                    if($avaiable){
+                        $order_items = order_items::where('resturant_id', $resturant['id'])->get();
+                        $order_list = array();
+                        $totals=array_fill(0,($currentyear-$startyear)+1,array_fill(0, 12, 0));
+                         
+                        foreach ($order_items as $item) {
+                            if (!in_array($item['order_id'], $order_list)) {
+                                array_push($order_list, $item['order_id']);
+                            }
+                        }
+                        foreach ($order_list as $order_id) {
+                            $s1 = orders::find($order_id);
+                            $order_date = new DateTime($s1['orderDate']);
+                            if((int)$order_date->format('Y')==$currentyear){
+                                $month = (int)$order_date->format('m') - 1;  // Get month (0-based index)
+                                $totals[0][$month] += (int)$s1['totalPrice'];
+                            }else{
+                                $month = (int)$order_date->format('m') - 1;  // Get month (0-based index)
+                                $totals[($currentyear-(int)$order_date->format('Y'))][$month] += (int)$s1['totalPrice'];
+                            }
+                        }
+                        $percentage = $resturant['moneyorpercentage'] / 100;
+                        for($i=0;$i<($currentyear-$startyear+1);$i++){
+                            if($i==0)
+                                for ($month = $startmonth; $month < 12; $month++) {
+                                    if($totals[$i][$month]!=0)
+                                        $totals[$i][$month] *= $percentage;
+                                }
+                            else
+                                for ($month = 0; $month < 12; $month++) {
+                                    if($totals[$i][$month]!=0)
+                                        $totals[$i][$month] *= $percentage;
+                                }
+                        }
+                        
+                    } else $mes="Sorry, this restaurant is not available in this time";
+                    break;
+            }      
+            return response()->json(['status' => 'success', 'monthly_totals' => $totals,'message'=>$mes]);
+
         }
+
     
-        return response()->json(['status' => 'success', 'monthly_totals' => $totals]);
+        return response()->json(['status' => 'success', 'monthly_totals' => $totals,'message'=>$mes]);
     }
     public function resturants_money_total(Request $request){
         $res_id = $request->id;
+        $years=$request->years;
         $resturant = resturants::find($res_id);
         $whattype = $resturant['typeoftax'];
-        $totals = array_fill(0, 12, 0);  // Initialize an array with 12 zeros for each month
-    
-        switch ($whattype) {
-            case 'monthly':
-                $monthly_amount = $resturant['moneyorpercentage'];
-                for ($month = 0; $month < 12; $month++) {
-                    $totals[$month] = $monthly_amount;
-                }
-                break;
-            case 'perorder':
-                $order_items = order_items::where('resturant_id', $resturant['id'])->get();
-                $order_list = array();
-                foreach ($order_items as $item) {
-                    if (!in_array($item['order_id'], $order_list)) {
-                        array_push($order_list, $item['order_id']);
+        $totals = array_fill(0, 12, 0); 
+        $dateforresturant=new DateTime($resturant['created_at']);
+        $startmonth=(int)$dateforresturant->format('m')-1;
+        $startyear=(int)$dateforresturant->format('Y');
+        $currentyear=date('Y');
+        $avaiable=true;
+        $mes='';
+        if($currentyear==$startyear){
+            if($startmonth+1>date('m')){
+               $avaiable=false;
+            }
+            $mes='year : '.$currentyear;
+        }else if($currentyear>$startyear)
+            $avaiable=true;
+        else 
+            $avaiable=false;
+
+        $mes.=' Get for all';
+        if(empty($years)||$years=null){
+            switch ($whattype) {
+                case 'monthly':
+                    $monthly_amount = $resturant['moneyorpercentage'];
+                    if($avaiable){
+                        $order_items = order_items::where('resturant_id', $resturant['id'])->get();
+                        $order_list = array();
+                        foreach ($order_items as $item) {
+                            if (!in_array($item['order_id'], $order_list)) {
+                                array_push($order_list, $item['order_id']);
+                            }
+                        }
+                        foreach ($order_list as $order_id) {
+                            $s1 = orders::find($order_id);
+                            $order_date = new DateTime($s1['orderDate']);
+                            if((int)$order_date->format('Y')==$startyear){
+                                $month = (int)$order_date->format('m') - 1;  // Get month (0-based index)
+                                $totals[$month] += (int)$s1['totalPrice'];
+                            }else{
+                            }
+                        }
+                    } else $mes="Sorry, this restaurant is not available in this time";
+                    break;
+                case 'perorder':
+                    if($avaiable){
+                        $order_items = order_items::where('resturant_id', $resturant['id'])->get();
+                        $order_list = array();
+                        foreach ($order_items as $item) {
+                            if (!in_array($item['order_id'], $order_list)) {
+                                array_push($order_list, $item['order_id']);
+                            }
+                        }
+                        foreach ($order_list as $order_id) {
+                            $s1 = orders::find($order_id);
+                            $order_date = new DateTime($s1['orderDate']);
+                            if((int)$order_date->format('Y')==$currentyear){
+                                $month = (int)$order_date->format('m') - 1;  // Get month (0-based index)
+                                $totals[$month] += (int)$s1['totalPrice'];
+                            }
+                        }
+                    } else $mes="Sorry, this restaurant is not available in this time";
+                    break;
+            }
+        } else {
+            switch ($whattype) {
+                case 'monthly':
+                    $monthly_amount = $resturant['moneyorpercentage'];
+                    $totals=array_fill(0,($currentyear-$startyear)+1,array_fill(0, 12, 0));
+                    
+                    if($avaiable){
+                        $order_items = order_items::where('resturant_id', $resturant['id'])->get();
+                        $order_list = array();
+                        foreach ($order_items as $item) {
+                            if (!in_array($item['order_id'], $order_list)) {
+                                array_push($order_list, $item['order_id']);
+                            }
+                        }
+                        foreach ($order_list as $order_id) {
+                            $s1 = orders::find($order_id);
+                            $order_date = new DateTime($s1['orderDate']);
+                            if((int)$order_date->format('Y')==$startyear){
+                                $month = (int)$order_date->format('m') - 1; 
+                                $totals[0][$month] += (int)$s1['totalPrice'];
+                            }else{
+                                $month = (int)$order_date->format('m') - 1;
+                                $totals[($currentyear-(int)$order_date->format('Y'))][$month] += (int)$s1['totalPrice'];
+                            }
+                        }
                     }
-                }
-                foreach ($order_list as $order_id) {
-                    $s1 = orders::find($order_id);
-                    $order_date = new DateTime($s1['orderDate']);
-                    $month = (int)$order_date->format('m') - 1;  // Get month (0-based index)
-                    $totals[$month] += (int)$s1['totalPrice'];
-                }
-                $percentage = 1;
-                for ($month = 0; $month < 12; $month++) {
-                    $totals[$month] *= $percentage;
-                }
-                break;
+                    else $mes="Sorry, this restaurant is not available in this time";
+                    
+                    break;
+                case 'perorder':
+                    if($avaiable){
+                        $order_items = order_items::where('resturant_id', $resturant['id'])->get();
+                        $order_list = array();
+                        $totals=array_fill(0,($currentyear-$startyear)+1,array_fill(0, 12, 0));
+                         
+                        foreach ($order_items as $item) {
+                            if (!in_array($item['order_id'], $order_list)) {
+                                array_push($order_list, $item['order_id']);
+                            }
+                        }
+                        foreach ($order_list as $order_id) {
+                            $s1 = orders::find($order_id);
+                            $order_date = new DateTime($s1['orderDate']);
+                            if((int)$order_date->format('Y')==$currentyear){
+                                $month = (int)$order_date->format('m') - 1;  // Get month (0-based index)
+                                $totals[0][$month] += (int)$s1['totalPrice'];
+                            }else{
+                                $month = (int)$order_date->format('m') - 1;  // Get month (0-based index)
+                                $totals[($currentyear-(int)$order_date->format('Y'))][$month] += (int)$s1['totalPrice'];
+                            }
+                        }
+                    } else $mes="Sorry, this restaurant is not available in this time";
+                    break;
+            }      
+            return response()->json(['status' => 'success', 'monthly_totals' => $totals,'message'=>$mes]);
+
         }
+
     
-        return response()->json(['status' => 'success', 'monthly_totals' => $totals]);
+        return response()->json(['status' => 'success', 'monthly_totals' => $totals,'message'=>$mes]);
     }
     //ADD
     public function orders_add(Request $request)
@@ -568,7 +747,3 @@ class AdminController extends Controller
         }
     }
 }
-
-
-//TODO :- 
-//make for finished / processed / done delivery -> it should close the order list like dont inculde that delivery person / resturant so we can delete it later again ...

@@ -25,7 +25,6 @@ $router->get('/api/resturants/index', 'ResturantsController@index');
 $router->get('/menu_items','MenuItemsController@index');
 
 $router->post('/menu_items_id','MenuItemsController@index_id');
-#will search the menu items resturants address then it will show the closest to furthest address
 $router->post('/resturants_address','ResturantsController@sort_location');
 $router->post('/resturants_address_food','ResturantsController@sort_location_food');
 
@@ -37,7 +36,6 @@ $router->group(['middleware' => 'auth','prefix' => 'api'], function ($router)
     $router->get('/current_orders','UserController@orders_list');
     $router->post('/temp_order_add','UserController@temp_order_add');
     $router->get('/temp_orders','UserController@temp_order');
-    //NOT IMPORTANT get from temp order then add to order
     $router->post('/add_order','UserController@addorder');
     $router->post('/profile/update', 'UserController@updateProfile');
     $router->post('/favorites/add', 'UserController@favoriteAdd');
@@ -61,7 +59,6 @@ $router->group(['middleware' => 'auth:resturants','prefix' => 'api/resturants'],
     $router->get('/orders','ResturantsController@order_list');
     $router->get('/remove_order', 'ResturantsController@removeorder');
 
-    //add menu items , ingredients(u can set no price) , item ingredients 
     $router->post('/menu_items_add','ResturantsController@menu_items_add');
     $router->post('/menu_items_edit','ResturantsController@menu_items_edit');
     $router->post('/menu_items_remove','ResturantsController@menu_items_remove');
@@ -77,8 +74,6 @@ $router->group(['middleware' => 'auth:admin','prefix' => 'api/admin'], function 
     $router->get('/users','AdminController@users_list');
     $router->get('/resturants','AdminController@resturants_list');
     $router->get('/delivery_drivers','AdminController@delivery_list');
-    //make for pi like prectnge how much for each resturants 2 things one for all resturants do the math and 
-    //one for a resturant 
     $router->get('/resturants/money/all/total','AdminController@resturants_money_all_total'); 
     $router->get('/resturants/money/all/tax','AdminController@resturants_money_all_tax'); 
     $router->post('/resturants/money/total','AdminController@resturants_money_total'); 
