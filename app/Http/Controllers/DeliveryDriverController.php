@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\delivery_drivers;
 use App\Models\deliverydriver_orders;
 use App\Models\orders;
 use Illuminate\Http\Request;
@@ -11,15 +12,15 @@ class DeliveryDriverController extends Controller
     public function orders_list()
     {
         $driver_id=auth($guard='delivery_drivers')->user()['id'];
-        $orders_list_unfiltered=orders::all();
-        $orders_list=array();
-        for($i=0;$i<count($orders_list_unfiltered);$i++){
-            if($orders_list_unfiltered[$i]['driver_id']==$driver_id)array_push($orders_list,$orders_list_unfiltered[$i]);
-        }
+        $orders_list=deliverydriver_orders::where('driver_id',$driver_id)->get();        
         return response()->json(['status'=>'success','message'=>$orders_list]);
     }
     public function index(){
         return response()->json(['status'=>'success','message'=>auth($guard='delivery_drivers')->user()]);
+    }
+    public function orders_id(Request $request){
+        $idk=deliverydriver_orders::where('order_id',$request->id)->first();
+        return response()->json(['status'=>'success','message'=>$idk]);
     }
     public function update_track(Request $request){
         $driver_id=auth($guard='delivery_drivers')->user()['id'];
@@ -55,5 +56,15 @@ class DeliveryDriverController extends Controller
             return response()->json(['status'=>'error','message'=>$e->getMessage()]);
         }
         return response()->json(['status'=>'success','message'=>'order removed']);
+    }
+    public function check_auth(){
+        return response()->json(['status'=>'success','message'=>'You are authenticated']);
+    }
+    public function edit_order(Request $request){
+        $order_id=$request->order_id;
+        $order=deliverydriver_orders::where('order_id',$order_id)->first();
+        $order->delivered=$request->delivered;
+        $order->save();
+        return response()->json(['status'=>'success','message'=>'success']);
     }
 }

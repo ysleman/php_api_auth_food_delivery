@@ -9,8 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use App\Models\resturants;
 use App\Models\order_items;
+use App\Models\orders;
 use App\Models\resturant_orders;
-
+use Illuminate\Support\Facades\DB;
 use function PHPUnit\Framework\isEmpty;
 
 class ResturantsController extends Controller
@@ -23,32 +24,79 @@ class ResturantsController extends Controller
             unset($resturants[$i]["order_id"]);
         return response()->json($resturants);
     }
+    public function res_id(Request $request){
+        $id=$request->id;
+        $resturants = resturants::find($id)->first();
+        return response()->json($resturants);
+    }
+    public function order_id(Request $request){
+        $resturant_id=auth($guard='resturants')->user()['id'];
+        $order_id=$request->id;
+        $menu_list_unordered=menu_items::where('resturant_id',$resturant_id)->get();
+        $restaurant_order=resturant_orders::where('order_id',$order_id)->first();
+        $orders_list=order_items::where('order_id',$order_id)->get();
+        $pricex=orders::find($order_id)->first();
+        $x=0;
+        for($y=0;$y<count($orders_list);$y++){
+            for($l=0;$l<$menu_list_unordered->count();$l++){
+                if($orders_list[$y]['item_id']==$menu_list_unordered[$l]['id']){
+                    unset($menu_list_unordered[$l]["quantity"]);
+                    unset($menu_list_unordered[$l]["resturant_id"]);
+                    unset($orders_list[$y]["resturant_id"]);
+                    unset($orders_list[$y]["id"]);
+                    $restaurant_order["item".$x]=$menu_list_unordered[$l];
+                    $x++;   
+                }
+            }
+        }
+        $restaurant_order["price"]=$pricex["totalPrice"];
+        return response()->json(["res"=>$restaurant_order]);
+    }
+    public function editorder(Request $request){
+        $order_id=$request->id;
+        $finished=$request->finished;
+        $price=$request->price;
+        $resturant_id=auth($guard='resturants')->user()['id'];
+        //can only edit finished , price for now later maybe do if he can remove item from order or not 
+        $restaurant_order=resturant_orders::where('order_id',$order_id)->first();
+        $pricex=orders::find($order_id)->first();
+        if($restaurant_order && $pricex){
+            $restaurant_order["finished"]=$finished;
+            $pricex["totalPrice"]=$price;
+            $pricex->save();
+            $restaurant_order->save();
+        }
+        return response()->json(["status"=>"success"]);
+    }
     public function order_list(){
         $resturant_id=auth($guard='resturants')->user()['id'];
         //multi orders
-        $order_list_unordered=order_items::all();
-        $menu_list_unordered=menu_items::all();
+        $menu_list_unordered=menu_items::where('resturant_id',$resturant_id)->get();
+        $current_restaurant_orders_unordered=resturant_orders::where('resturant_id',$resturant_id)->get();
         $orders_list=array();
-        for($i=0;$i<count($order_list_unordered);$i++){
-            if($order_list_unordered[$i]['resturant_id']==$resturant_id)
-               array_push($orders_list,$order_list_unordered[$i]);
+        for($i=0;$i<count($current_restaurant_orders_unordered);$i++){
+            array_push($orders_list,order_items::where('order_id',$current_restaurant_orders_unordered[$i]['order_id'])->get());
         }
         for($i=0;$i<count($orders_list);$i++)
-            for($y=0;$y<count($menu_list_unordered);$y++)
-                if($orders_list[$i]["item_id"]==$menu_list_unordered[$y]["id"] && $orders_list[$i]["resturant_id"]==$menu_list_unordered[$y]["resturant_id"]){
-                    unset($menu_list_unordered[$i]["quantity"]);
-                    unset($menu_list_unordered[$i]["resturant_id"]);
-                    $orders_list[$i]["item_id"]=$menu_list_unordered[$y];
+            for($y=0;$y<count($orders_list[$i]);$y++){
+                $x=0;
+                for($l=0;$l<$menu_list_unordered->count();$l++){
+                    if($orders_list[$i][$y]['item_id']==$menu_list_unordered[$l]['id']){
+                        unset($menu_list_unordered[$l]["quantity"]);
+                        unset($menu_list_unordered[$l]["resturant_id"]);
+                        unset($orders_list[$i][$y]["item_id"]);
+                        unset($orders_list[$i][$y]["resturant_id"]);
+                        unset($orders_list[$i][$y]["id"]);
+                        $orders_list[$i][$y]["item".$x]=$menu_list_unordered[$l];
+                        $orders_list[$i][$y]["finished"]=$current_restaurant_orders_unordered[$i]["finished"];
+                        $x++;   
+                    }
                 }
-            
-        for($i=0;$i<count($orders_list);$i++)
-            unset($orders_list[$i]["resturant_id"]);
-
-
+            }
         return response()->json($orders_list);
     }
     public function removeorder(Request $request){
-        $resturant_id=auth($guard='resturant')->user()['id'];
+        $resturant_id=auth($guard='resturants')->user()['id'];
         $order_id=$request->order_id;
         try{
             $order = resturant_orders::where('order_id','=', $order_id)
@@ -86,16 +134,36 @@ class ResturantsController extends Controller
 
     public function menu_items_edit(Request $request)
     {
-        $resturant_id=auth($guard='resturants')->user()['id'];
-        $menu_item=menu_items::where('id',$request->menu_item_id)->first();
+        $menu_item=menu_items::where('id',$request->menu_items_id)->first();
+        $item_ingredients=item_ingredients::where('itemid',$request->menu_items_id)->get();
+        $idk=array();
         if($menu_item){
-            $menu_item->name=$request->name;
-            $menu_item->price=$request->price;
+            $menu_item->name=$request->mainname;
+            $menu_item->price=$request->mainprice;
             $menu_item->description=$request->description;
             $menu_item->quantity=$request->quantity;
             $menu_item->save();
-        }
-        return response()->json(['status' => 'success', 'message' => 'Menu item edited successfully']);
+            $howmany=$request->howmany;
+            $i=0;
+            if (count($item_ingredients) === $howmany) {
+                foreach ($item_ingredients as $index => $item) {
+                    $ingredient = ingredients::find($item['IngredientID']);
+                    
+                    if ($ingredient) {
+                        $name_x = "name" . $index;
+                        $price_x = "price" . $index;
+                        // Update ingredient data
+                        $ingredient->name = $request->$name_x;
+                        $ingredient->price = $request->$price_x;
+                        $ingredient->save();
+                        
+                        // Store updated names in $idk
+                        array_push($idk, $request->$name_x);
+                    }
+                }
+            }
+        }   
+        return response()->json(['status' => 'success', "help"=>$idk,'message' => 'Menu item edited successfully']);
     }
 
     public function menu_items_remove(Request $request)
@@ -104,9 +172,37 @@ class ResturantsController extends Controller
         // Example:
         // DB::table('menu_items')->where('id', $request->id)->delete();
         $menu_item=menu_items::where('id',$request->menu_item_id)->delete();
+        $items=item_ingredients::where('itemid',$request->menu_item_id)->get();
+        foreach($items as $item){
+            $ing=ingredients::find($item['IngredientID'])->delete();
+            $item->delete();
+        }
         return response()->json(['status' => 'success', 'message' => 'Menu item removed successfully']);
     }
+    public function resturant_menu_items(Request $request){
+        $id=$request->id;
+        $menu_items_unfiltered = menu_items::find($id)->first();
+        $menu_items=array();
+        array_push($menu_items,$menu_items_unfiltered);
+        $item_ingds=item_ingredients::where('itemid',$id)->get();
+        $ingds=ingredients::all();
+        $menu_items[0]["howmany"]=count($item_ingds);
+        // return response()->json(["message1"=>$menu_items_unfiltered,"me2"=>$item_ingds]);
+        $count=1;
+            for($i=0;$i<count($item_ingds);$i++){
+                if($item_ingds[$i]["itemid"]==$id){
+                    array_push($menu_items,$item_ingds[$i]);
+                    $menu_items[$count]=$item_ingds[$i];
+                    $ingd_id=$menu_items[$count]["IngredientID"];
+                        for($x=0;$x<count($ingds);$x++)
+                            if($ingds[$x]["id"]==$ingd_id)
+                                $menu_items[$count]["IngredientID"]=$ingds[$x];
+                } 
+                $count++;
+            }
 
+        return $menu_items;
+    }
     public function menu_items_ingredients_add(Request $request)
     {
 
@@ -153,6 +249,8 @@ class ResturantsController extends Controller
             $ingredient->price=$request->price;
             $ingredient->save();
         }
+
+        //fix for ingeredients edit same as menu items edit
         return response()->json(['status' => 'success', 'message' => 'Menu item ingredient edited successfully']);
     }
 
@@ -280,7 +378,9 @@ class ResturantsController extends Controller
             // Return JSON response with filtered array
             return response()->json(["status"=>'success',"message" => $food_array_filtered]);
     }
-
+    public function check_auth(){
+        return response()->json(['status'=>'success','message'=>'You are authenticated']);
+    }
 }
 
 

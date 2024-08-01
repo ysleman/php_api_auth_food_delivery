@@ -23,7 +23,7 @@ $router->post('/login/res','AuthController_res@login');
 $router->post('/login/del','AuthController_Del@login');
 $router->get('/api/resturants/index', 'ResturantsController@index');
 $router->get('/menu_items','MenuItemsController@index');
-
+$router->post('/resturant_id','ResturantsController@res_id');
 $router->post('/menu_items_id','MenuItemsController@index_id');
 $router->post('/resturants_address','ResturantsController@sort_location');
 $router->post('/resturants_address_food','ResturantsController@sort_location_food');
@@ -44,11 +44,13 @@ $router->group(['middleware' => 'auth','prefix' => 'api'], function ($router)
     $router->post('/payment/process', 'PaymentController@process');
     $router->post('/payment/methods', 'PaymentController@saveMethod');
     $router->get('/payment/methods', 'PaymentController@getMethods');
-
 });
 $router->group(['middleware' => 'auth:delivery_drivers','prefix' => 'api/delivery_drivers'], function ($router)
 {
+    $router->get('/check-auth','DeliveryDriverController@check_auth');
     $router->get('/orders', 'DeliveryDriverController@orders_list');
+    $router->post('/orders', 'DeliveryDriverController@orders_id');
+    $router->post('/edit_order', 'DeliveryDriverController@edit_order');
     $router->post('/tracking', 'DeliveryDriverController@tracking');
     $router->post('/update_tracking', 'DeliveryDriverController@update_track');
     $router->post('/remove_order', 'DeliveryDriverController@removeorder');
@@ -56,8 +58,13 @@ $router->group(['middleware' => 'auth:delivery_drivers','prefix' => 'api/deliver
 });
 $router->group(['middleware' => 'auth:resturants','prefix' => 'api/resturants'], function ($router)
 {
+    $router->get('/check-auth','ResturantsController@check_auth');
     $router->get('/orders','ResturantsController@order_list');
-    $router->get('/remove_order', 'ResturantsController@removeorder');
+    $router->post('/orders','ResturantsController@order_id');
+    $router->post('/edit_order', 'ResturantsController@editorder');
+    $router->post('/remove_order', 'ResturantsController@removeorder');
+    $router->get('/menu_items','MenuItemsController@resturant_id');
+    $router->post('/menu_items','ResturantsController@resturant_menu_items');
 
     $router->post('/menu_items_add','ResturantsController@menu_items_add');
     $router->post('/menu_items_edit','ResturantsController@menu_items_edit');
@@ -69,15 +76,24 @@ $router->group(['middleware' => 'auth:resturants','prefix' => 'api/resturants'],
 });
 $router->group(['middleware' => 'auth:admin','prefix' => 'api/admin'], function ($router)
 {
+    $router->get('/check-auth','AdminController@check_auth');
     //SHOW 
     $router->get('/orders','AdminController@orders_list');
     $router->get('/users','AdminController@users_list');
     $router->get('/resturants','AdminController@resturants_list');
     $router->get('/delivery_drivers','AdminController@delivery_list');
+    
+    $router->post('/orders','AdminController@orders_Check');
+    $router->post('/users','AdminController@users_Check');
+    $router->post('/resturants','AdminController@resturants_Check');
+    $router->post('/delivery_drivers','AdminController@delivery_Check');
+    
     $router->get('/resturants/money/all/total','AdminController@resturants_money_all_total'); 
     $router->get('/resturants/money/all/tax','AdminController@resturants_money_all_tax'); 
     $router->post('/resturants/money/total','AdminController@resturants_money_total'); 
     $router->post('/resturants/money/tax','AdminController@resturants_money_tax'); 
+    $router->post('/resturant/order/list','AdminController@orders_resturant_all');
+    $router->get('/resturants/order/list','AdminController@orders_resturants_all');
 
 
     //ADD

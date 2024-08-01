@@ -15,7 +15,7 @@ class AuthController_res extends Controller
      */
     public function logout()
     {
-        auth()->logout();
+        auth($guard='resturants')->logout();
 
         return response()->json(['message' => 'Successfully logged out']);
     }
@@ -125,4 +125,5 @@ class AuthController_res extends Controller
             'expires_in' => auth()->factory()->getTTL() * 60
         ]);
     }
+    
 }

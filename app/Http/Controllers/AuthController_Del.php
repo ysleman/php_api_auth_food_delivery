@@ -16,7 +16,7 @@ class AuthController_Del extends Controller
      */
     public function logout()
     {
-        auth()->logout();
+        auth($guard='delivery_drivers')->logout();
 
         return response()->json(['message' => 'Successfully logged out']);
     }
@@ -124,4 +124,5 @@ class AuthController_Del extends Controller
             'expires_in' => auth()->factory()->getTTL() * 60
         ]);
     }
+    
 }

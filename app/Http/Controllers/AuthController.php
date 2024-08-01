@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Tymon\JWTAuth\Facades\JWTFactory;
 
 class AuthController extends Controller
 {
@@ -110,7 +111,7 @@ class AuthController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        return $this->respondWithToken($token);
+        return $this->respondWithTokenAdmin($token);
     }
 
     public function upadtepassword(Request $request)
@@ -196,6 +197,13 @@ class AuthController extends Controller
             'access_token' => $token,
             'token_type' => 'bearer',
             'expires_in' => auth()->factory()->getTTL() * 60
+        ]);
+    }
+    protected function respondWithTokenAdmin($token)
+    {
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'bearer'
         ]);
     }
 }

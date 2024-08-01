@@ -19,7 +19,7 @@ class resturants extends Model implements AuthenticatableContract, AuthorizableC
      * @var array
      */
     protected $fillable = [
-        'name', 'rating','address','phone'
+        'name', 'rating','address','phone','typeoftax','moneyorpercentage','username'
     ];
 
     /**
@@ -28,7 +28,7 @@ class resturants extends Model implements AuthenticatableContract, AuthorizableC
      * @var array
      */
     protected $hidden = [
-        'password','username','typeoftax','moneyorpercentage'
+        'password'
     ];
 
     /**
