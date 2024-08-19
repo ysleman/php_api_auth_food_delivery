@@ -20,6 +20,7 @@ class AuthController extends Controller
         $birthdate=$request->birthdate;
         $temp_password=$request->temppassword;
         $img=$request->img;
+        $gender=$request->gender;
 
         // Check if field is empty
         if (empty($username) or empty($email) or empty($password) or empty($firstname) or empty($lastname) or empty($phone) or empty($birthdate) 
@@ -54,6 +55,7 @@ class AuthController extends Controller
             $user->phone=$request->phone;
             $user->birthDate=$request->birthdate;
             $user->img=$request->img;
+            $user->gender=$request->gender;
             if ($user->save()) {
                 return $this->login($request);
             }

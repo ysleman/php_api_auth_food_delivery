@@ -19,6 +19,7 @@ class CreateDeliveryDriversTable extends Migration
             $table->string('username')->unique();
             $table->string('password');
             $table->string('phone');
+            $table->integer('resturant_id');
             $table->timestamps();
         });
     }

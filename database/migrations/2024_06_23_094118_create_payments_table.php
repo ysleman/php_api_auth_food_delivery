@@ -21,8 +21,11 @@ class CreatePaymentsTable extends Migration
             $table->integer('order_id');
             $table->string('payment_method');
             $table->string('status');
+            $table->string('cvv');
+            $table->string('cardNumber');
+            $table->string('expirationDate');
+            $table->string('Name');
             $table->timestamps();
-
         });
     }
 

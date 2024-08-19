@@ -267,11 +267,20 @@ class ResturantsController extends Controller
 
     public function sort_location(Request $request){
         $address=$request->address;
+        $lat_sent=$request->lat;
+        $lon_sent=$request->lon;
         
         $locationdetails= Http::get('https://geocode.maps.co/search?city='.$address.'&country=IL&api_key=6684fb0511fd4967575382teo9d69dc');
-        if($locationdetails!=null){
-            $lat = $locationdetails[0]['lat'];
-            $lon = $locationdetails[0]['lon'];
+        if($locationdetails!=null || ($lat_sent!=null && $lon_sent!=null)){
+           $lat='';
+           $lon='';
+            if($lat_sent!=null && $lon_sent!=null) {
+                $lat=$lat_sent;
+                $lon=$lon_sent;
+            }else {
+                $lat = $locationdetails[0]['lat'];
+                $lon = $locationdetails[0]['lon'];
+            }
             $url = "http://api.geonames.org/findNearbyPlaceNameJSON?lat=".$lat."&lng=".$lon."&style=full&maxRows=30&radius=5&cities=cities1000&username=xtoyx3";
 
             $closecities = Http::get($url);
@@ -380,6 +389,13 @@ class ResturantsController extends Controller
     }
     public function check_auth(){
         return response()->json(['status'=>'success','message'=>'You are authenticated']);
+    }
+    public function accept_order(Request $request){
+        $id=$request->id;
+        $order_resturant=resturant_orders::where('order_id',$id)->first();
+        $order_resturant->accepted="yes";
+        $order_resturant->save();
+        return response()->json(['status'=>'success','message'=>'success']);
     }
 }
 

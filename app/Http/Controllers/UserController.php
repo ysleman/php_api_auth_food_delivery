@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\delivery_drivers;
 use App\Models\deliverydriver_orders;
 use App\Models\favorites;
 use App\Models\item_ingredients;
@@ -24,6 +25,7 @@ class UserController extends Controller
         $order->orderDate=date('Y/m/d');
         $order->user_id=$user_id;
         $order->driver_id=$request->driver_id;
+        if($request->driver_id == NULL) return response()->json(['status'=>'error']);
         $order->totalPrice=$request->totalprice;
         if($order->save()){
             //ask if menu_item and item have that item
@@ -78,10 +80,13 @@ class UserController extends Controller
                 $resturant_order->finished=0;
                 $resturant_order->save();
             }
-            $temp_orders=temp_orders::where('user_id',$user_id)::get()->delete();
+
+            $temp_orders=temp_orders::where('user_id',$user_id)->get();
+            if($temp_orders && count($temp_orders)>0)
+                $temp_orders->delete();
             
         }
-        return response()->json(['status'=>'success','message'=>'success']);
+        return response()->json(['status'=>'success','message'=>'success','order'=>$order]);
     }
 
     public function orders_list()
@@ -183,5 +188,16 @@ class UserController extends Controller
             return response()->json(['status'=>'success','message'=>$favorites->get()]);
         }
     }
-
+    public function whofree(Request $request){
+        $free_drivers=array();
+        $res_id=$request->restuarant_id;
+        $drivers=delivery_drivers::where('resturant_id',$res_id)->get();
+        foreach ($drivers as $driver){
+            $order=deliverydriver_orders::where('driver_id',$driver['id'])->first();
+            if($order==NULL){
+               array_push($free_drivers,$driver);
+            }
+        }
+        return response()->json(['status'=>'success','message'=>$free_drivers]);
+    }
 }

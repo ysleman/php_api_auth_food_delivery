@@ -67,4 +67,5 @@ class DeliveryDriverController extends Controller
         $order->save();
         return response()->json(['status'=>'success','message'=>'success']);
     }
+   
 }

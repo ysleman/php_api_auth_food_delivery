@@ -26,6 +26,7 @@ class CreateUsersTable extends Migration
             $table->string('address');
             $table->string('temp_password')->nullable();
             $table->string('img');
+            $table->string('gender');
             $table->timestamps();
         });
     }

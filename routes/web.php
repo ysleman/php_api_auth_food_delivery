@@ -23,6 +23,7 @@ $router->post('/login/res','AuthController_res@login');
 $router->post('/login/del','AuthController_Del@login');
 $router->get('/api/resturants/index', 'ResturantsController@index');
 $router->get('/menu_items','MenuItemsController@index');
+$router->post('/menu_item_id','MenuItemsController@item_id');
 $router->post('/resturant_id','ResturantsController@res_id');
 $router->post('/menu_items_id','MenuItemsController@index_id');
 $router->post('/resturants_address','ResturantsController@sort_location');
@@ -41,6 +42,7 @@ $router->group(['middleware' => 'auth','prefix' => 'api'], function ($router)
     $router->post('/favorites/add', 'UserController@favoriteAdd');
     $router->get('/favorites', 'UserController@favorite');
     $router->post('/favorites/remove', 'UserController@favoriteremove');
+    $router->post('/whofree','UserController@whofree');
     $router->post('/payment/process', 'PaymentController@process');
     $router->post('/payment/methods', 'PaymentController@saveMethod');
     $router->get('/payment/methods', 'PaymentController@getMethods');
@@ -61,11 +63,12 @@ $router->group(['middleware' => 'auth:resturants','prefix' => 'api/resturants'],
     $router->get('/check-auth','ResturantsController@check_auth');
     $router->get('/orders','ResturantsController@order_list');
     $router->post('/orders','ResturantsController@order_id');
+    $router->post('/accept_order','ResturantsController@accept_order');
     $router->post('/edit_order', 'ResturantsController@editorder');
     $router->post('/remove_order', 'ResturantsController@removeorder');
+
     $router->get('/menu_items','MenuItemsController@resturant_id');
     $router->post('/menu_items','ResturantsController@resturant_menu_items');
-
     $router->post('/menu_items_add','ResturantsController@menu_items_add');
     $router->post('/menu_items_edit','ResturantsController@menu_items_edit');
     $router->post('/menu_items_remove','ResturantsController@menu_items_remove');

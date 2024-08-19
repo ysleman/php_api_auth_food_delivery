@@ -18,6 +18,7 @@ class CreateResturantOrdersTable extends Migration
             $table->integer('resturant_id')->nullable();
             $table->integer('order_id')->nullable();
             $table->string('finished')->nullable();
+            $table->string('accepted')->nullable();
             $table->timestamps();
         });
     }
