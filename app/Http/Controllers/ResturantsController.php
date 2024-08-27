@@ -40,7 +40,7 @@ class ResturantsController extends Controller
         for($y=0;$y<count($orders_list);$y++){
             for($l=0;$l<$menu_list_unordered->count();$l++){
                 if($orders_list[$y]['item_id']==$menu_list_unordered[$l]['id']){
-                    unset($menu_list_unordered[$l]["quantity"]);
+                    unset($menu_list_unordered[$l]["stock"]);
                     unset($menu_list_unordered[$l]["resturant_id"]);
                     unset($orders_list[$y]["resturant_id"]);
                     unset($orders_list[$y]["id"]);
@@ -82,7 +82,7 @@ class ResturantsController extends Controller
                 $x=0;
                 for($l=0;$l<$menu_list_unordered->count();$l++){
                     if($orders_list[$i][$y]['item_id']==$menu_list_unordered[$l]['id']){
-                        unset($menu_list_unordered[$l]["quantity"]);
+                        unset($menu_list_unordered[$l]["stock"]);
                         unset($menu_list_unordered[$l]["resturant_id"]);
                         unset($orders_list[$i][$y]["item_id"]);
                         unset($orders_list[$i][$y]["resturant_id"]);
@@ -121,7 +121,7 @@ class ResturantsController extends Controller
         $menu_item->description=$request->description;
         $menu_item->price=$request->price;
         $menu_item->img=$request->img;
-        $menu_item->quantity=$request->quantity;
+        $menu_item->stock=$request->stock;
         if($menu_item->save()){
             $menu_item_id=$menu_item['id'];
             $request->request->add(['menu_item_id' => $menu_item_id]); //add request
@@ -141,7 +141,7 @@ class ResturantsController extends Controller
             $menu_item->name=$request->mainname;
             $menu_item->price=$request->mainprice;
             $menu_item->description=$request->description;
-            $menu_item->quantity=$request->quantity;
+            $menu_item->stock=$request->stock;
             $menu_item->save();
             $howmany=$request->howmany;
             $i=0;

@@ -374,7 +374,7 @@ class AdminController extends Controller
             $howmany=$request->howmany;
             for($i=1;$i<$howmany;$i++){
                 $item_id_x="item_id".$i;
-                $quantity_x="quantity".$i;
+                $stock_x="stock".$i;
                 $resturant_id_x="resturant_id".$i;
                 try{
                     if(item_ingredients::where('itemid','=',$request->$item_id_x)->exists() && menu_items::find($request->$resturant_id_x)->exists())
@@ -461,7 +461,7 @@ class AdminController extends Controller
     public function delivery_add(Request $request)
     {
         $delivery_drivers = new delivery_drivers();
-
+        $delivery_drivers->resturant_id=$request->resturant_id;
         $delivery_drivers->full_Name = $request->fullname;
         $delivery_drivers->username = $request->username;
         $delivery_drivers->phone=$request->phone;

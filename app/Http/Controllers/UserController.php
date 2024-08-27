@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 use App\Models\delivery_drivers;
 use App\Models\deliverydriver_orders;
 use App\Models\favorites;
+use App\Models\ingredients_orders;
 use App\Models\item_ingredients;
+use App\Models\items_ingds_orders;
 use App\Models\menu_items;
+use App\Models\menu_items_orders;
 use App\Models\order_items;
 use App\Models\User;
 use App\Models\temp_orders;
@@ -21,18 +24,20 @@ class UserController extends Controller
     }
     public function addorder(Request $request){
         $user_id=auth($guard='api')->user()['id'];
+        $restuarants_orders_id=[];
         $order=new orders();
         $order->orderDate=date('Y/m/d');
         $order->user_id=$user_id;
+        if($request->driver_id == NULL) 
+        return response()->json(['status'=>'error']);
         $order->driver_id=$request->driver_id;
-        if($request->driver_id == NULL) return response()->json(['status'=>'error']);
         $order->totalPrice=$request->totalprice;
         if($order->save()){
             //ask if menu_item and item have that item
             $howmany=$request->howmany;
             for($i=1;$i<$howmany;$i++){
                 $item_id_x="item_id".$i;
-                $quantity_x="quantity".$i;
+                $quanity_x="quantity".$i;
                 $resturant_id_x="resturant_id".$i;
                 try{
                     if(item_ingredients::where('itemid','=',$request->$item_id_x)->exists() && menu_items::find($request->$resturant_id_x)->exists())
@@ -43,7 +48,7 @@ class UserController extends Controller
             }
             $i=0;
             $item_id_x="item_id".$i;
-            $quantity_x="quantity".$i;
+            $quanity_x="quantity".$i;
             $resturant_id_x="resturant_id".$i;
             $order_item=new order_items();
             if($request->driver_id!=0){
@@ -57,45 +62,69 @@ class UserController extends Controller
             $resturant_order->order_id=$order['id'];
             $resturant_order->resturant_id=$request->$resturant_id_x;
             $resturant_order->finished=0;
+            $resturant_order->accepted='false';
             $resturant_order->save();
             $order_item->order_id=$order['id'];
             $order_item->item_id=$request->$item_id_x;
-            $order_item->quanity=$request->$quantity_x;
+            $order_item->quanity=$request->$quanity_x;
             $order_item->resturant_id=$request->$resturant_id_x;
             $order_item->save();
             for($i=1;$i<$howmany;$i++){
                 $order_item=new order_items();
                 $order_item->order_id=$order['id'];
                 $item_id_x="item_id".$i;
-                $quantity_x="quantity".$i;
+                $quanity_x="quantity".$i;
                 $resturant_id_x="resturant_id".$i;
                 $order_item->item_id=$request->$item_id_x;
                 //ask if menu_item have that item
-                $order_item->quanity=$request->$quantity_x;
+                $order_item->quanity=$request->$quanity_x;
                 $order_item->resturant_id=$request->$resturant_id_x;
                 $order_item->save();
                 $resturant_order=new resturant_orders();
                 $resturant_order->order_id=$order['id'];
                 $resturant_order->resturant_id=$request->$resturant_id_x;
                 $resturant_order->finished=0;
+                $resturant_order->accepted='false';
                 $resturant_order->save();
             }
 
             $temp_orders=temp_orders::where('user_id',$user_id)->get();
             if($temp_orders && count($temp_orders)>0)
                 $temp_orders->delete();
-            
+            $data=$this->addmenuitem_order($request);
         }
+
         return response()->json(['status'=>'success','message'=>'success','order'=>$order]);
     }
-
+    public function addmenuitem_order(Request $request){
+        $howmany=$request->howmany;
+        for($y=0; $y<$howmany; $y++){
+            $Ingredientsx="Ingredients".$y;
+            for($i=0;$i<count($request->$Ingredientsx);$i++){
+               $ingd_details=$request->$Ingredientsx[$i];
+               $ingd=new ingredients_orders();
+               $ingd->name=$ingd_details['IngredientID']['name'];
+               $ingd->price=$ingd_details['IngredientID']['price'];
+               if($ingd->save()){
+                    $ingredient_id=$ingd['id'];
+                    $item_ingredients=new items_ingds_orders();
+                    $item_ingredients->IngredientID=$ingredient_id;
+                    $menu_item_x="item_id".$y;
+                    $item_ingredients->itemid=$request->$menu_item_x;
+                    $item_ingredients->save();
+               }
+            }
+        }
+        return response()->json(['status'=>'success','message'=>'worked']);
+    }
+    
     public function orders_list()
     {
         $user_id=auth($guard='api')->user()['id'];
-        $orders_list_unfiltered=orders::all();
+        $orders_list_unfiltered=orders::where('user_id',$user_id)->get();
         $orders_list=array();
         for($i=0;$i<count($orders_list_unfiltered);$i++){
-            if($orders_list_unfiltered[$i]['user_id']==$user_id)array_push($orders_list,$orders_list_unfiltered[$i]);
+                array_push($orders_list,order_items::where("order_id",$orders_list_unfiltered[$i]['id'])->get());
         }
         return response()->json(['status'=>'success','message'=>$orders_list]);
     }
@@ -118,17 +147,17 @@ class UserController extends Controller
         $order->user_id=$user_id;
         $i=0;
         $item_id_x="item_id".$i;
-        $quantity_x="quantity".$i;
+        $quanity_x="quanity".$i;
         $order->item_id=$request->$item_id_x;
-        $order->quantity=$request->$quantity_x;
+        $order->quanity=$request->$quanity_x;
         $order->save();
         for($i=1;$i<$howmany;$i++){
             $order=new temp_orders();
             $order->user_id=$user_id;
             $item_id_x="item_id".$i;
-            $quantity_x="quantity".$i;
+            $quanity_x="quanity".$i;
             $order->item_id=$request->$item_id_x;
-            $order->quantity=$request->$quantity_x;
+            $order->quanity=$request->$quanity_x;
             $order->save();
         }
         return response()->json(['status'=>'success','message'=>'success']);
@@ -198,6 +227,7 @@ class UserController extends Controller
                array_push($free_drivers,$driver);
             }
         }
+        if($free_drivers==NULL) return response()->json(['status'=>'success','message'=>'none']);
         return response()->json(['status'=>'success','message'=>$free_drivers]);
     }
 }

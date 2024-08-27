@@ -48,14 +48,11 @@ class MenuItemsController extends Controller
         for($i=0;$i<count($item_ingds);$i++){
                     if($i==0){
                         array_push($menu_items,$menu_items_unfiltered);
-                        $menu_items[0]["item".$i]=ingredients::where('id',$item_ingds[$i]["IngredientID"])->first();
+                        $menu_items[0]["item".$i]=$item_ingds[$i];
                     }else {
-                        $menu_items[0]["item".$i]=ingredients::where('id',$item_ingds[$i]["IngredientID"])->first();
+                        $menu_items[0]["item".$i]=$item_ingds[$i];
                     }
-                    // $ingd_id=$menu_items[$count]["item".$i]["IngredientID"];
-                    // for($x=0;$x<count($ingds);$x++){
-                    //         if($ingds[$x]["id"]==$ingd_id)$menu_items[$count]["item".$i]["IngredientID"]=$ingds[$x];
-                    // }
+                    $menu_items[0]["item".$i]["IngredientID"]=ingredients::where('id',$item_ingds[$i]["IngredientID"])->first();
         }
         return $menu_items;
     }
